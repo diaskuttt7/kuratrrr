@@ -2,15 +2,15 @@ import re
 import pytesseract
 from PIL import Image
 from telethon import TelegramClient, events, errors
+from telethon.tl.functions.channels import GetParticipantRequest
 from sympy import sympify
 from sympy.core.sympify import SympifyError
 import asyncio
 import os
 
-channel_username = 'izatlox1'
+channel_username = 'izatlox1'  # Kanal yoki guruh usernameni kiriting (public bo'lishi kerak)
 
-# Tesseract yo'lini sozlash (serverda bo'lmasa olib tashlash mumkin)
-# pytesseract.pytesseract.tesseract_cmd = r"/usr/bin/tesseract"
+# pytesseract.pytesseract.tesseract_cmd = r"/usr/bin/tesseract"  # Agar kerak bo'lsa
 
 accounts = [
     {"session": "account1", "api_id": 20262983, "api_hash": "d233b0bf40f861ce947ec5e95510300e", "message": "1346239969"},
@@ -30,7 +30,7 @@ clients = []
 
 def extract_expression(text):
     text = re.sub(r'(?<=\d)\s*[xX]\s*(?=\d)', '*', text)
-    pattern = r'[\d\s\+\-\*/\^\(\)]+'
+    pattern = r'[\d\s\+\-\*/\^\(\)]+'  # matematik ifodalar
     matches = re.findall(pattern, text)
     if matches:
         for m in matches:
@@ -78,11 +78,14 @@ async def handle_event(client):
             print(f"[{client.session.filename}] ⚠️ Xatolik: {e}")
 
 async def check_subscription(client, interval=60):
-    """Har interval sekundda kanalga obuna bo‘lishini tekshiradi"""
+    """Har interval soniyada kanalga obuna bo‘lganligini tekshiradi"""
     while True:
         try:
-            participant = await client.get_participant(channel_username, 'me')
-            if participant:
+            result = await client(GetParticipantRequest(
+                channel=channel_username,
+                participant='me'
+            ))
+            if result.participant:
                 print(f"[{client.session.filename}] ✅ Kanalga obuna bo‘lingan")
         except errors.UserNotParticipantError:
             print(f"[{client.session.filename}] ❌ Kanalga obuna emas")
@@ -94,7 +97,6 @@ async def start_client(acc):
     client = TelegramClient(acc['session'], acc['api_id'], acc['api_hash'])
     await client.start()
     await handle_event(client)
-    # Har 60 soniyada obuna tekshiruvchi task
     asyncio.create_task(check_subscription(client))
     print(f"🔗 {acc['session']} ulandi va obuna tekshirish boshlandi.")
     return client
